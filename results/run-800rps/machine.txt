@@ -1,0 +1,21 @@
+runner: GitHub Actions ubuntu-latest (app, Postgres and k6 on the same VM)
+commit: 25c70b079afa21e5c5731722127a63fa801b5d48
+date_utc: 2026-11-22T16:17:00Z
+rate: 800/s duration: 60s
+--- lscpu
+CPU(s):                                  4
+Model name:                              AMD EPYC 7763 64-Core Processor
+Thread(s) per core:                      2
+Core(s) per socket:                      2
+--- memory
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi       1.1Gi        13Gi        60Mi       1.6Gi        14Gi
+Swap:          3.0Gi          0B       3.0Gi
+--- os
+Linux runnervm0hi8g 7.0.0-1020-azure #21-Ubuntu SMP PREEMPT Tue Oct 27 22:34:38 UTC 2026 x86_64 GNU/Linux
+--- java
+openjdk version "21.0.13" 2026-10-20 LTS
+OpenJDK Runtime Environment Temurin-21.0.13+9 (build 21.0.13+9-LTS)
+OpenJDK 64-Bit Server VM Temurin-21.0.13+9 (build 21.0.13+9-LTS, mixed mode, sharing)
+--- k6
+k6 v0.54.0 (commit/baba871c8a, go1.23.1, linux/amd64)

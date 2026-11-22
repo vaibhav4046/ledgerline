@@ -1,0 +1,1 @@
+k6 run -e RATE=200 -e DURATION=60s -e BASE_URL=http://localhost:8080 loadtest/transfers.js
