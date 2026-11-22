@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: ledgerline
+  datasource:
+    url: ${LEDGER_DB_URL:jdbc:postgresql://127.0.0.1:5434/postgres?currentSchema=ledger}
+    username: ${LEDGER_DB_USER:postgres}
+    password: ${LEDGER_DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: 20
+  flyway:
+    # Must match currentSchema in the JDBC URL; Flyway creates it if missing.
+    schemas: ${LEDGER_DB_SCHEMA:ledger}
+
+server:
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+ledgerline:
+  stripe:
+    base-url: ${STRIPE_BASE_URL:https://api.stripe.com}
+    secret-key: ${STRIPE_SECRET_KEY:}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+  outbox:
+    enabled: true
+    poll-ms: 1000

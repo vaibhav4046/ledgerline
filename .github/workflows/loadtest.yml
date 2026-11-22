@@ -1,0 +1,81 @@
+name: loadtest
+
+on:
+  workflow_dispatch:
+    inputs:
+      rate:
+        description: 'Requests started per second (k6 constant-arrival-rate)'
+        default: '200'
+      duration:
+        description: 'k6 duration'
+        default: '60s'
+
+permissions:
+  contents: read
+
+jobs:
+  k6:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Build jar
+        run: mvn -B -DskipTests package
+      - name: Install k6
+        run: |
+          curl -sSL https://github.com/grafana/k6/releases/download/v0.54.0/k6-v0.54.0-linux-amd64.tar.gz | tar xz
+          sudo mv k6-v0.54.0-linux-amd64/k6 /usr/local/bin/k6
+          k6 version
+      - name: Record machine specs
+        run: |
+          mkdir -p results
+          {
+            echo "runner: GitHub Actions ubuntu-latest (app, Postgres and k6 on the same VM)"
+            echo "commit: $GITHUB_SHA"
+            echo "date_utc: $(date -u +%FT%TZ)"
+            echo "rate: ${{ inputs.rate }}/s duration: ${{ inputs.duration }}"
+            echo "--- lscpu"; lscpu | grep -E 'Model name|^CPU\(s\)|Thread|Core'
+            echo "--- memory"; free -h
+            echo "--- os"; uname -a
+            echo "--- java"; java -version 2>&1
+            echo "--- k6"; k6 version
+          } > results/machine.txt
+          cat results/machine.txt
+      - name: Start app
+        env:
+          LEDGER_DB_URL: jdbc:postgresql://127.0.0.1:5432/postgres?currentSchema=ledger
+          LEDGER_DB_USER: postgres
+          LEDGER_DB_PASSWORD: postgres
+        run: |
+          nohup java -jar target/ledgerline-0.1.0.jar > results/app.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf localhost:8080/actuator/health && break; sleep 2; done
+          curl -sf localhost:8080/actuator/health
+      - name: Run k6
+        env:
+          RATE: ${{ inputs.rate }}
+          DURATION: ${{ inputs.duration }}
+          BASE_URL: http://localhost:8080
+        run: |
+          set -o pipefail
+          echo "k6 run -e RATE=$RATE -e DURATION=$DURATION -e BASE_URL=$BASE_URL loadtest/transfers.js" > results/command.txt
+          k6 run -e RATE=$RATE -e DURATION=$DURATION -e BASE_URL=$BASE_URL loadtest/transfers.js 2>&1 | tee results/k6-output.txt
+      - name: Post-run audit
+        if: always()
+        run: curl -s localhost:8080/admin/audit | tee results/audit.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: loadtest-results
+          path: results/

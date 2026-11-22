@@ -1,0 +1,6 @@
+target/
+.idea/
+*.iml
+.env
+results/raw*
+*.log
