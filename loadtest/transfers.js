@@ -36,8 +36,9 @@ function params(key) {
   return { headers: { 'Content-Type': 'application/json', 'Idempotency-Key': key } };
 }
 
+let seq = 0; // per-VU counter (__ITER is not defined inside setup())
 function newKey() {
-  return `k6-${__VU}-${__ITER}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `k6-${__VU}-${seq++}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 function createFunded(amount) {
